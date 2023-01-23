@@ -1,0 +1,37 @@
+---
+procyamlversion: 3.0.0-dev.0
+containers:
+  - name: FEOBVQA
+    path: feobvqa_v1.sif
+    source: docker://bud42/feobvqa:v1
+requirements:
+  walltime: 0-2
+  memory: 8G
+inputs:
+  xnat:
+    petscans:
+      - name: scan_pet
+        tracer: FEOBV
+        scantypes: CTAC
+        nifti: PET.nii.gz
+    assessors:
+      - name: assr_fs7
+        types: FS7_v1
+        resources: 
+          - resource: SUBJ
+            fmatch: mri/orig.mgz
+            fdest: orig.mgz
+          - resource: SUBJ
+            fmatch: mri/aparc+aseg.mgz
+            fdest: aparc+aseg.mgz
+          - resource: SUBJ
+            fmatch: mri/wmparc.mgz
+            fdest: wmparc.mgz
+outputs:
+  - dir: DATA
+  - pdf: report.pdf
+  - stats: stats.csv
+command:
+  type: singularity_run
+  container: FEOBVQA
+description: FEOBV regional SUVR using FreeSurfer 7 parcellation
