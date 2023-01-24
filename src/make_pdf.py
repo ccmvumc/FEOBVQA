@@ -2,8 +2,6 @@
 from __future__ import print_function
 import math
 import os
-import sys
-from shutil import copy
 from datetime import datetime
 import numpy as np
 import pandas as pd
@@ -240,28 +238,6 @@ def cropad_data(img, zoom_radius):
     return img_data
 
 
-def write_stats(file_path, stats):
-    '''Write stats to file as key=value'''
-
-    with open(file_path, 'w') as stats_file:
-        for key, value in sorted(stats.iteritems()):
-            stats_file.write(key + '=' + value + '\n')
-
-
-def add_csv_stats(csv_path, stats):
-    '''Load the csv file and add the values to the stats dictionary'''
-
-    # Load stats from csv file
-    dfc = pd.read_csv(csv_path, sep=',', header=0)
-
-    # Add mean
-    dfc_mean = dfc[['ROI', 'MEAN']].copy()
-    dfc_mean['varname'] = ('amyvid_' + dfc_mean['ROI'] + '_mean').str.lower()
-    dfc_mean['pet_mean'] = dfc_mean['MEAN'].map('{0:.1f}'.format)
-    stats.update(dict(zip(dfc_mean.varname, dfc_mean.pet_mean)))
-    return stats
-
-
 def run():
     prows = 16
     pcols = 12
@@ -269,7 +245,7 @@ def run():
 
     # Outputs
     job_dir = '/OUTPUTS/DATA'
-    stats_path = os.path.join(job_dir, 'stats.txt')
+    stats_path ='/OUTPUTS/stats.txt'
     csv_path = os.path.join(job_dir, 'PETbyROI.csv')
     seg_path = os.path.join(job_dir, 'ROI_SEG.nii.gz')
     cortwm_path = os.path.join(job_dir, 'ROI_cortwm.nii.gz')
@@ -303,9 +279,6 @@ def run():
     cblmwm_data = pet_data[[seg_data == 7]]
     compgm_data = pet_data[[(seg_data <= 5) & (seg_data > 0)]]
     cblmtot_data = pet_data[[(seg_data == 6) | (seg_data == 7)]]
-
-    # Add some stats
-    stats = add_csv_stats(csv_path, stats)
 
     # Data for bar plot
     both_data = {
@@ -345,17 +318,8 @@ def run():
     ]
 
     # Data for SUVR table
-    cblmtot_mean = cblmtot_data.mean()
-    flobe_suvr = '{:.2f}'.format(flobe_data.mean() / cblmtot_mean)
-    plobe_suvr = '{:.2f}'.format(plobe_data.mean() / cblmtot_mean)
-    tlobe_suvr = '{:.2f}'.format(tlobe_data.mean() / cblmtot_mean)
-    acing_suvr = '{:.2f}'.format(acing_data.mean() / cblmtot_mean)
-    pcing_suvr = '{:.2f}'.format(pcing_data.mean() / cblmtot_mean)
-    cblmgm_suvr = '{:.2f}'.format(cblmgm_data.mean() / cblmtot_mean)
-    cblmwm_suvr = '{:.2f}'.format(cblmwm_data.mean() / cblmtot_mean)
-    cblmtot_suvr = '{:.2f}'.format(cblmtot_data.mean() / cblmtot_mean)
-    compgm_suvr = '{:.2f}'.format(compgm_data.mean() / cblmtot_mean)
-    cortwm_suvr = '{:.2f}'.format(cortwm_data.mean() / cblmtot_mean)
+    with open(stats_path) as f:
+        suvr = {x.rstrip().split('=')[0]: x.rstrip().split('=')[1] for x in f}
 
     # Create the main container figure for the page
     fig = plt.figure(0, figsize=(7.5, 10))
@@ -373,19 +337,10 @@ def run():
     # Top text
     axes = plt.subplot2grid((prows, pcols), (0, 0), rowspan=1, colspan=8)
     axes.text(
-        0, 1, 'DAX Report - AMYVID',
+        0, 1, 'DAX Report - FEOBV',
         horizontalalignment='left',
         verticalalignment='top',
         fontsize=14, fontweight='bold'
-    )
-    axes.set_axis_off()
-    proj_text = assr
-    axes = plt.subplot2grid((prows, pcols), (0, 8), rowspan=1, colspan=4)
-    axes.text(
-        0, 1, proj_text,
-        horizontalalignment='left',
-        verticalalignment='top',
-        fontsize=12
     )
     axes.set_axis_off()
 
@@ -416,16 +371,16 @@ def run():
         'Cerebellar GM', 'Cerebellar WM',
         'Cerebral WM', 'Cerebellum', 'Composite GM']
     cell_text = [
-        [flobe_suvr],
-        [plobe_suvr],
-        [tlobe_suvr],
-        [acing_suvr],
-        [pcing_suvr],
-        [cblmgm_suvr],
-        [cblmwm_suvr],
-        [cortwm_suvr],
-        [cblmtot_suvr],
-        [compgm_suvr]]
+        [suvr.get('flobe_suvr')],
+        [suvr.get('plobe_suvr')],
+        [suvr.get('tlobe_suvr')],
+        [suvr.get('acing_suvr')],
+        [suvr.get('pcing_suvr')],
+        [suvr.get('cblmgm_suvr')],
+        [suvr.get('cblmwm_suvr')],
+        [suvr.get('cortwm_suvr')],
+        [suvr.get('cblmtot_suvr')],
+        [suvr.get('compgm_suvr')]]
 
     ax = plt.subplot2grid((prows, pcols), (12, 11), rowspan=4, colspan=2)
     ax.set_axis_off()
@@ -436,9 +391,6 @@ def run():
                          cellLoc='center')
     the_table.auto_set_font_size(False)
     the_table.set_fontsize(9)
-
-    # Footer
-    plot_footer()
 
     # Tidy up margins
     fig.tight_layout(pad=2)
@@ -455,38 +407,6 @@ def run():
     cmd += pdf_path + '  ' + os.path.splitext(pdf_path)[0] + '_page*.pdf'
     print('INFO:saving final PDF:' + cmd)
     os.system(cmd)
-
-    # Write stats file
-    stats['amyvid_flobe_suvr'] = flobe_suvr
-    stats['amyvid_plobe_suvr'] = plobe_suvr
-    stats['amyvid_tlobe_suvr'] = tlobe_suvr
-    stats['amyvid_acing_suvr'] = acing_suvr
-    stats['amyvid_pcing_suvr'] = pcing_suvr
-    stats['amyvid_cblmgm_suvr'] = cblmgm_suvr
-    stats['amyvid_cblmwm_suvr'] = cblmwm_suvr
-    stats['amyvid_cblmtot_suvr'] = cblmtot_suvr
-    stats['amyvid_compgm_suvr'] = compgm_suvr
-    stats['amyvid_cortwm_suvr'] = cortwm_suvr
-    write_stats(stats_path, stats)
-
-
-def plot_footer():
-    # Bottom text
-    nowstr = datetime.now().strftime('%Y-%m-%d  %H:%M:%S')
-    plt.figtext(
-        0.02,
-        0.01,
-        'https://xnat.vanderbilt.edu/xnat, brian.d.boyd@vumc.org',
-        horizontalalignment='left',
-        fontsize=8
-    )
-    plt.figtext(
-        0.98,
-        0.01,
-        nowstr,
-        horizontalalignment='right',
-        fontsize=8
-    )
 
 
 if __name__ == '__main__':

@@ -2,8 +2,12 @@ echo "Run FEOBVQA"
 
 mkdir -p /OUTPUTS/DATA
 
-/opt/src/prep_inputs.sh
+# Copy inputs to outputs
+echo 'prep'
+/opt/src/prep.sh
 
+# Run the main processing steps
+echo 'proc'
 /opt/src/proc.sh
 
 # Create QA PDF
