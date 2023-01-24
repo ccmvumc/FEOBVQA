@@ -30,7 +30,7 @@ inputs:
 outputs:
   - dir: DATA
   - pdf: report.pdf
-  - stats: stats.csv
+  - stats: stats.txt
 command:
   type: singularity_run
   container: FEOBVQA

@@ -5,8 +5,6 @@ cd /OUTPUTS/DATA/
 # Create motion-corrected averaged PET
 echo 'mcflirt PET'
 mcflirt -in PET.nii.gz -report -plots -stats -meanvol -mats -rmsrel -rmsabs
-#mcflirt -in PET.nii.gz -report -plots -stats -meanvol \
-#-stages 4 -mats -rmsrel -rmsabs -sinc_final
 
 # Register PET to FreeSurfer
 echo 'Register PET to FreeSurfer orig'
@@ -176,8 +174,5 @@ do
     mri_segstats --seg ROI_${r}.nii.gz --i PET_mcf_meanvol.nii.gz --id 1 --sum ${r}_stats.txt
     grep Seg0001 ${r}_stats.txt | awk '{print ","$8","$9","$6","$7","$4}' >> $TXT
 done
-
-echo 'Getting factor'
-
 
 echo 'DONE'

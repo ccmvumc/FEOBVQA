@@ -21,7 +21,7 @@ def write_stats(stats, file_path):
 
     with open(file_path, 'w') as stats_file:
         for key, value in sorted(stats.items()):
-            stats_file.write(f'{key}={value}\n')
+            stats_file.write(f'{key}={value:.3g}\n')
 
 
 def run(stats_file):

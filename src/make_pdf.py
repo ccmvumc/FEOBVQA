@@ -1,8 +1,6 @@
 
-from __future__ import print_function
 import math
 import os
-from datetime import datetime
 import numpy as np
 import pandas as pd
 import nibabel as nib
@@ -43,7 +41,7 @@ def plot_slices(
 
     if fg_file:
         fg = nib.load(fg_file)
-        fg_data = np.squeeze(fg.get_data())
+        fg_data = np.squeeze(fg.get_fdata())
         fg_data = cropad_data(fg, zoom_radius)
     else:
         fg_data = np.empty(bg_data.shape)
@@ -108,11 +106,8 @@ def plot_slices(
         interpolation=fg_interp, alpha=fg_alpha, vmin=0, vmax=fg_vmax
     )
     plt.ylabel(name)
-    plt.tick_params(axis='both', which='both',
-                    bottom='off', top='off',
-                    labelbottom='off', right='off', left='off',
-                    labelleft='off')
-    ax.grid(False)
+    ax.set_xticks([])
+    ax.set_yticks([])
 
     if show_title:
         ax.set_title('Anterior', fontsize=10)
@@ -186,7 +181,7 @@ def fliptrans(slice_data):
 # Crop and pad data to zoom_radius
 def cropad_data(img, zoom_radius):
     hdr = img.header
-    img_data = np.squeeze(img.get_data())
+    img_data = np.squeeze(img.get_fdata())
     xshape = int(zoom_radius * 2 / hdr['pixdim'][1])
     yshape = int(zoom_radius * 2 / hdr['pixdim'][2])
     zshape = int(zoom_radius * 2 / hdr['pixdim'][3])
@@ -241,44 +236,44 @@ def cropad_data(img, zoom_radius):
 def run():
     prows = 16
     pcols = 12
-    stats = {}
 
     # Outputs
     job_dir = '/OUTPUTS/DATA'
-    stats_path ='/OUTPUTS/stats.txt'
-    csv_path = os.path.join(job_dir, 'PETbyROI.csv')
+    stats_path = '/OUTPUTS/stats.txt'
+    pdf_path = '/OUTPUTS/report.pdf'
     seg_path = os.path.join(job_dir, 'ROI_SEG.nii.gz')
     cortwm_path = os.path.join(job_dir, 'ROI_cortwm.nii.gz')
-    pdf_path = os.path.join(job_dir, 'report.pdf')
     gm_path = os.path.join(job_dir, 'ROI_cortgm.nii.gz')
     wm_path = os.path.join(job_dir, 'ROI_cortwm.nii.gz')
     pet_mc_path = os.path.join(job_dir, 'PET_mcf_meanvol.nii.gz')
+    refwm_path = os.path.join(job_dir, 'ROI_supravwm_eroded.nii.gz')
 
     # Load PET image
     print('Loading PET image:' + pet_mc_path)
-    pet_data = nib.load(pet_mc_path).get_data()
+    pet_data = nib.load(pet_mc_path).get_fdata()
 
     # Load SEG image
     print('Loading SEG image:' + seg_path)
-    seg_data = nib.load(seg_path).get_data()
+    seg_data = nib.load(seg_path).get_fdata()
 
     # Load WM image
     print('Loading WM image:' + cortwm_path)
-    cortwm_seg_data = nib.load(cortwm_path).get_data()
+    cortwm_seg_data = nib.load(cortwm_path).get_fdata()
 
+    # Set negatives/zero to nan
     pet_data[pet_data <= 0.0] = np.nan
-    cortwm_data = pet_data[[cortwm_seg_data == 1]]
-    tot_data = pet_data[[seg_data > 0]]
-    tot_mean = np.nanmean(tot_data)
-    flobe_data = pet_data[[seg_data == 1]]
-    plobe_data = pet_data[[seg_data == 2]]
-    tlobe_data = pet_data[[seg_data == 3]]
-    acing_data = pet_data[[seg_data == 4]]
-    pcing_data = pet_data[[seg_data == 5]]
-    cblmgm_data = pet_data[[seg_data == 6]]
-    cblmwm_data = pet_data[[seg_data == 7]]
-    compgm_data = pet_data[[(seg_data <= 5) & (seg_data > 0)]]
-    cblmtot_data = pet_data[[(seg_data == 6) | (seg_data == 7)]]
+
+    # Get pet values for each region
+    cortwm_data = pet_data[cortwm_seg_data == 1]
+
+    flobe_data = pet_data[seg_data == 1]
+    plobe_data = pet_data[seg_data == 2]
+    tlobe_data = pet_data[seg_data == 3]
+    acing_data = pet_data[seg_data == 4]
+    pcing_data = pet_data[seg_data == 5]
+    cblmgm_data = pet_data[seg_data == 6]
+    cblmwm_data = pet_data[seg_data == 7]
+    compgm_data = pet_data[(seg_data <= 5) & (seg_data > 0)]
 
     # Data for bar plot
     both_data = {
@@ -298,22 +293,26 @@ def run():
 
     # Data for boxplots
     plot_data = [
-        flobe_data, plobe_data, tlobe_data,
-        acing_data, pcing_data,
-        cblmgm_data, cblmwm_data,
-        cortwm_data, cblmtot_data, compgm_data]
+        flobe_data,
+        plobe_data,
+        tlobe_data,
+        acing_data,
+        pcing_data,
+        cblmgm_data,
+        cblmwm_data,
+        cortwm_data,
+        compgm_data]
 
     # Labels for boxplots
     plot_labels = [
-        'Ant\nFrontal',
-        'Lat\nParietal',
-        'Lat\nTemporal',
-        'Ant\nCingulate',
-        'Post\nCingulate',
+        'Anterior\nFrontal',
+        'Lateral\nParietal',
+        'Lateral\nTemporal',
+        'Anterior\nCingulate',
+        'Posterior\nCingulate',
         'Cerebellar GM',
         'Cerebellar WM',
         'Cerebral WM',
-        'Cerebellum',
         'Composite GM'
     ]
 
@@ -326,26 +325,17 @@ def run():
 
     # Plot Image Slices
     plot_slices(
-        pet_mc_path, None, prows, pcols, 1, name='PET',
+        pet_mc_path, None, prows, pcols, 0, name='PET',
         xhair=True, show_title=True)
-    plot_slices(pet_mc_path, gm_path, prows, pcols, 3, name='GM')
-    plot_slices(pet_mc_path, wm_path, prows, pcols, 5, name='WM')
+    plot_slices(pet_mc_path, gm_path, prows, pcols, 2, name='GM')
+    plot_slices(pet_mc_path, wm_path, prows, pcols, 4, name='WM')
+    plot_slices(pet_mc_path, refwm_path, prows, pcols, 6, name='Reference')
     plot_slices(
-        pet_mc_path, seg_path, prows, pcols, 7, name='ROI',
+        pet_mc_path, seg_path, prows, pcols, 8, name='ROI',
         fg_cmap=ROI_CMAP)
 
-    # Top text
-    axes = plt.subplot2grid((prows, pcols), (0, 0), rowspan=1, colspan=8)
-    axes.text(
-        0, 1, 'DAX Report - FEOBV',
-        horizontalalignment='left',
-        verticalalignment='top',
-        fontsize=14, fontweight='bold'
-    )
-    axes.set_axis_off()
-
     # Bar Plot of voxel counts
-    axes = plt.subplot2grid((prows, pcols), (10, 0), rowspan=1, colspan=12)
+    axes = plt.subplot2grid((prows, pcols), (11, 0), rowspan=1, colspan=12)
     plot_df.plot(
         kind='barh', stacked='true', ax=axes, cmap=ROI_CMAP, fontsize=6)
     axes.set_xlabel('Voxel Count', fontsize=6)
@@ -353,60 +343,47 @@ def run():
         ncol=8, fontsize=6, loc='upper center', bbox_to_anchor=(0.5, 1.5))
 
     # Boxplots of raw values
-    axes = plt.subplot2grid((prows, pcols), (12, 0), rowspan=3, colspan=8)
+    axes = plt.subplot2grid((prows, pcols), (13, 0), rowspan=3, colspan=8)
     axes.boxplot(plot_data, labels=plot_labels, showfliers=False)
     xlabels = axes.get_xticklabels()
     for label in xlabels:
         label.set_rotation(90)
         label.set_fontsize(6)
 
-    # Draw mean line
-    axes.axhline(y=tot_mean, linewidth=1, color='g', ls='dashed')
-
     # Plot Table
     columns = ['SUVR']
     rows = [
-        'Ant Frontal', 'Lat Parietal', 'Lat Temporal',
-        'Ant Cingulate', 'Post Cingulate',
+        'Anterior Frontal', 'Lateral Parietal', 'Lateral Temporal',
+        'Anterior Cingulate', 'Posterior Cingulate',
         'Cerebellar GM', 'Cerebellar WM',
-        'Cerebral WM', 'Cerebellum', 'Composite GM']
+        'Cerebral WM', 'Composite GM']
     cell_text = [
-        [suvr.get('flobe_suvr')],
-        [suvr.get('plobe_suvr')],
-        [suvr.get('tlobe_suvr')],
-        [suvr.get('acing_suvr')],
-        [suvr.get('pcing_suvr')],
+        [suvr.get('antflobe_suvr')],
+        [suvr.get('latplobe_suvr')],
+        [suvr.get('lattlobe_suvr')],
+        [suvr.get('antcing_suvr')],
+        [suvr.get('postcing_suvr')],
         [suvr.get('cblmgm_suvr')],
         [suvr.get('cblmwm_suvr')],
         [suvr.get('cortwm_suvr')],
-        [suvr.get('cblmtot_suvr')],
         [suvr.get('compgm_suvr')]]
 
-    ax = plt.subplot2grid((prows, pcols), (12, 11), rowspan=4, colspan=2)
+    ax = plt.subplot2grid((prows, pcols), (14, 11), rowspan=4, colspan=2)
     ax.set_axis_off()
-    the_table = ax.table(cellText=cell_text,
-                         rowLabels=rows,
-                         colLabels=columns,
-                         loc='center',
-                         cellLoc='center')
-    the_table.auto_set_font_size(False)
-    the_table.set_fontsize(9)
+    ax.table(
+        cellText=cell_text,
+        rowLabels=rows,
+        colLabels=columns,
+        loc='center',
+        cellLoc='center',
+    )
 
     # Tidy up margins
-    fig.tight_layout(pad=2)
-    fig.subplots_adjust(wspace=0.1, hspace=0.1)
+    fig.tight_layout()
 
     # Save figure to PDF file
-    pdf_page1_path = os.path.splitext(pdf_path)[0] + '_page1.pdf'
-    fig.savefig(
-        pdf_page1_path, transparent=True, orientation='portrait', dpi=300)
+    fig.savefig(pdf_path, transparent=True, orientation='portrait', dpi=300)
     plt.close(fig)
-
-    # Concatenate PDFs
-    cmd = 'gs -q -sPAPERSIZE=letter -dNOPAUSE -dBATCH -sDEVICE=pdfwrite -sOutputFile='
-    cmd += pdf_path + '  ' + os.path.splitext(pdf_path)[0] + '_page*.pdf'
-    print('INFO:saving final PDF:' + cmd)
-    os.system(cmd)
 
 
 if __name__ == '__main__':

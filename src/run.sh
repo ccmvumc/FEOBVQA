@@ -10,6 +10,11 @@ echo 'prep'
 echo 'proc'
 /opt/src/proc.sh
 
+# Create stats
+echo "Make stats"
+cd /OUTPUTS/DATA
+python /opt/src/make_stats.py
+
 # Create QA PDF
 echo "Make PDF"
 cd /OUTPUTS/DATA
