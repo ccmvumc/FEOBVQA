@@ -1,6 +1,6 @@
 # /INPUTS/
 
-if [ -d "$HOME/TEST-FEOBVQA" ]; then
+if [ -d "$HOME/TEST-FEOBVQA/OUTPUTS" ]; then
     echo "Already exists, delete first"
     exit 1;
 fi

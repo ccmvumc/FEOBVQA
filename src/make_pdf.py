@@ -244,7 +244,6 @@ def run():
     seg_path = os.path.join(job_dir, 'ROI_SEG.nii.gz')
     cortwm_path = os.path.join(job_dir, 'ROI_cortwm.nii.gz')
     gm_path = os.path.join(job_dir, 'ROI_cortgm.nii.gz')
-    wm_path = os.path.join(job_dir, 'ROI_cortwm.nii.gz')
     pet_mc_path = os.path.join(job_dir, 'PET_mcf_meanvol.nii.gz')
     refwm_path = os.path.join(job_dir, 'ROI_supravwm_eroded.nii.gz')
 
@@ -260,12 +259,16 @@ def run():
     print('Loading WM image:' + cortwm_path)
     cortwm_seg_data = nib.load(cortwm_path).get_fdata()
 
+    # Load Ref image
+    print('Loading Reference image:' + refwm_path)
+    ref_data = nib.load(refwm_path).get_fdata()
+
     # Set negatives/zero to nan
     pet_data[pet_data <= 0.0] = np.nan
 
     # Get pet values for each region
+    esupravwm_data = pet_data[ref_data == 1]
     cortwm_data = pet_data[cortwm_seg_data == 1]
-
     flobe_data = pet_data[seg_data == 1]
     plobe_data = pet_data[seg_data == 2]
     tlobe_data = pet_data[seg_data == 3]
@@ -293,6 +296,7 @@ def run():
 
     # Data for boxplots
     plot_data = [
+        esupravwm_data,
         flobe_data,
         plobe_data,
         tlobe_data,
@@ -305,6 +309,7 @@ def run():
 
     # Labels for boxplots
     plot_labels = [
+        'Reference\n(SupravWM eroded)',
         'Anterior\nFrontal',
         'Lateral\nParietal',
         'Lateral\nTemporal',
@@ -321,21 +326,21 @@ def run():
         suvr = {x.rstrip().split('=')[0]: x.rstrip().split('=')[1] for x in f}
 
     # Create the main container figure for the page
-    fig = plt.figure(0, figsize=(7.5, 10))
+    fig = plt.figure(0, figsize=(8.5, 11))
+    fig.suptitle('DAX Report - FEOBV', fontweight='bold', y=0.95)
 
     # Plot Image Slices
     plot_slices(
         pet_mc_path, None, prows, pcols, 0, name='PET',
         xhair=True, show_title=True)
     plot_slices(pet_mc_path, gm_path, prows, pcols, 2, name='GM')
-    plot_slices(pet_mc_path, wm_path, prows, pcols, 4, name='WM')
-    plot_slices(pet_mc_path, refwm_path, prows, pcols, 6, name='Reference')
+    plot_slices(pet_mc_path, refwm_path, prows, pcols, 4, name='Reference')
     plot_slices(
-        pet_mc_path, seg_path, prows, pcols, 8, name='ROI',
+        pet_mc_path, seg_path, prows, pcols, 6, name='ROI',
         fg_cmap=ROI_CMAP)
 
     # Bar Plot of voxel counts
-    axes = plt.subplot2grid((prows, pcols), (11, 0), rowspan=1, colspan=12)
+    axes = plt.subplot2grid((prows, pcols), (10, 0), rowspan=1, colspan=12)
     plot_df.plot(
         kind='barh', stacked='true', ax=axes, cmap=ROI_CMAP, fontsize=6)
     axes.set_xlabel('Voxel Count', fontsize=6)
@@ -343,8 +348,9 @@ def run():
         ncol=8, fontsize=6, loc='upper center', bbox_to_anchor=(0.5, 1.5))
 
     # Boxplots of raw values
-    axes = plt.subplot2grid((prows, pcols), (13, 0), rowspan=3, colspan=8)
+    axes = plt.subplot2grid((prows, pcols), (12, 0), rowspan=3, colspan=7)
     axes.boxplot(plot_data, labels=plot_labels, showfliers=False)
+    plt.grid(axis='y')
     xlabels = axes.get_xticklabels()
     for label in xlabels:
         label.set_rotation(90)
@@ -352,12 +358,21 @@ def run():
 
     # Plot Table
     columns = ['SUVR']
+
     rows = [
-        'Anterior Frontal', 'Lateral Parietal', 'Lateral Temporal',
-        'Anterior Cingulate', 'Posterior Cingulate',
-        'Cerebellar GM', 'Cerebellar WM',
-        'Cerebral WM', 'Composite GM']
+        'SupravWM eroded',
+        'Anterior Frontal',
+        'Lateral Parietal',
+        'Lateral Temporal',
+        'Anterior Cingulate',
+        'Posterior Cingulate',
+        'Cerebellar GM',
+        'Cerebellar WM',
+        'Cerebral WM',
+        'Composite GM']
+
     cell_text = [
+        [suvr.get('supravwm_eroded_suvr')],
         [suvr.get('antflobe_suvr')],
         [suvr.get('latplobe_suvr')],
         [suvr.get('lattlobe_suvr')],
@@ -366,9 +381,9 @@ def run():
         [suvr.get('cblmgm_suvr')],
         [suvr.get('cblmwm_suvr')],
         [suvr.get('cortwm_suvr')],
-        [suvr.get('compgm_suvr')]]
+        [suvr.get('compositegm_suvr')]]
 
-    ax = plt.subplot2grid((prows, pcols), (14, 11), rowspan=4, colspan=2)
+    ax = plt.subplot2grid((prows, pcols), (12, 11), rowspan=5, colspan=2)
     ax.set_axis_off()
     ax.table(
         cellText=cell_text,
@@ -377,9 +392,6 @@ def run():
         loc='center',
         cellLoc='center',
     )
-
-    # Tidy up margins
-    fig.tight_layout()
 
     # Save figure to PDF file
     fig.savefig(pdf_path, transparent=True, orientation='portrait', dpi=300)
