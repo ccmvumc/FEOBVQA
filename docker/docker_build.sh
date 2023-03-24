@@ -1,1 +1,2 @@
-docker build --platform linux/amd64 -t bud42/feobvqa:v1 ../.
+docker build --platform linux/amd64 -t bud42/feobvqa:v2 ../.
+
