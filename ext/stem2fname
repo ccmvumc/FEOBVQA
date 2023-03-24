@@ -1,0 +1,73 @@
+#! /bin/csh -f
+
+#
+# stem2fname
+#
+# Finds the format/extension given the stem.
+#
+# Looks for a disk file called stem.fmt, where fmt is:
+# mgh mgz nii nii.gz bhdr img (in that order), and returns 
+# stem.fmt
+#
+# Original Author: Doug Greve
+#
+# Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
+#
+# Terms and conditions for use, reproduction, distribution and contribution
+# are found in the 'FreeSurfer Software License Agreement' contained
+# in the file 'LICENSE' found in the FreeSurfer distribution, and here:
+#
+# https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+#
+# Reporting: freesurfer@nmr.mgh.harvard.edu
+#
+#
+
+
+if($#argv != 1) then
+  echo "stem2fname stem"
+  echo "  Looks for stem.fmt where fmt is mgh mgz nii nii.gz bhdr img w,"
+  echo "  then returns stem.fmt. See also stem2fmt, fname2stem"
+  echo "  The file needs to exist on disk."
+  exit 1;
+endif
+
+set stem = $argv[1];
+
+set fmtlist = (mgh mgz nii nii.gz bhdr img w)
+if($?FSF_OUTPUT_FORMAT) then
+  if($FSF_OUTPUT_FORMAT == nii.gz) then
+    set fmtlist = (mgh mgz nii.gz nii bhdr img w)
+  endif
+endif
+
+
+# Make sure that the desired FSF OUTPUT format is first
+#if($?FSF_OUTPUT_FORMAT) then
+#  set fmtlist = ($FSF_OUTPUT_FORMAT $fmtlist)
+#endif
+
+@ n = 0;
+set tstlist = ();
+foreach fmt ($fmtlist)
+  set testfile = $stem.$fmt
+  if(-e $testfile) set tstlist = ($tstlist $testfile);
+end
+
+if($#tstlist == 0) then
+  echo "ERROR: could not determine file for $stem"
+  exit 1;
+endif
+
+echo "$tstlist[1]"
+if($#tstlist == 1) exit 0;
+
+# only option
+if($#tstlist > 1) then
+  echo "WARNING: multiple formats found for $stem" > /dev/stderr
+  echo "  USING: $tstlist[1]" > /dev/stderr
+endif
+
+
+exit 0;
+##########################################
