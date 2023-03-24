@@ -27,6 +27,12 @@ RUN mkdir /INPUTS /OUTPUTS
 # Copy in our scripts
 COPY src /opt/src/
 COPY ext /opt/ext/
+
+# Copy in additional files needed to run mni152reg
+COPY MNI152_T1_1mm_brain.nii.gz /opt/ext/data/standard/MNI152_T1_1mm_brain.nii.gz
+COPY ext/fsl.5.0.2.xyztrans.sch /opt/sclimbic/bin/fsl.5.0.2.xyztrans.sch
+COPY ext/flirt.newdefault.20080811.sch /opt/sclimbic/bin/flirt.newdefault.20080811.sch
+
 RUN chmod +x /opt/src/*.sh
 RUN chmod +x /opt/ext/*
 ENV PATH=/opt/ext:/opt/src:$PATH

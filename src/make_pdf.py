@@ -238,7 +238,7 @@ def run():
     pcols = 12
 
     # Outputs
-    job_dir = '/OUTPUTS/DATA'
+    job_dir = '/OUTPUTS/DATA/mri'
     stats_path = '/OUTPUTS/stats.txt'
     pdf_path = '/OUTPUTS/report.pdf'
     seg_path = os.path.join(job_dir, 'ROI_SEG.nii.gz')

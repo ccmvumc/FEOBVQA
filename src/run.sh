@@ -1,6 +1,6 @@
 echo "Run FEOBVQA"
 
-mkdir -p /OUTPUTS/DATA
+mkdir -p /OUTPUTS/DATA/mri
 
 # Copy inputs to outputs
 echo 'prep'

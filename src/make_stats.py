@@ -25,7 +25,7 @@ def write_stats(stats, file_path):
 
 
 def run(stats_file):
-    csv_path = '/OUTPUTS/DATA/PETbyROI.csv'
+    csv_path = '/OUTPUTS/DATA/mri/PETbyROI.csv'
     stats = suvr_stats(csv_path)
     write_stats(stats, stats_file)
 

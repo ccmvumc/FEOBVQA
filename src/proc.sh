@@ -1,6 +1,6 @@
 #!/bin/bash
 
-cd /OUTPUTS/DATA/
+cd /OUTPUTS/DATA/mri
 
 # Create motion-corrected averaged PET
 echo 'mcflirt PET'
@@ -8,8 +8,11 @@ mcflirt -in PET.nii.gz -report -plots -stats -meanvol -mats -rmsrel -rmsabs
 
 # Register PET to FreeSurfer
 echo 'Register PET to FreeSurfer orig'
-mri_coreg --ref orig.mgz --ref-mask aparc+aseg.mgz \
---mov PET_mcf_meanvol.nii.gz --reg pet2fs.lta
+mri_coreg \
+--ref orig.mgz \
+--ref-mask aparc+aseg.mgz \
+--mov PET_mcf_meanvol.nii.gz \
+--reg pet2fs.lta
 
 # Apply inverse tranform to T1
 mri_convert -ait pet2fs.lta orig.mgz orig2pet.nii.gz
@@ -17,8 +20,69 @@ mri_convert -ait pet2fs.lta orig.mgz orig2pet.nii.gz
 # Apply inverse tranform to SEG
 mri_convert -ait pet2fs.lta -rt nearest aparc+aseg.mgz aparc+aseg2pet.nii.gz
 
+# Apply inverse tranform to WMPARC
+mri_convert -ait pet2fs.lta -rt nearest wmparc.mgz wmparc2pet.nii.gz
+
+# Create the transform from subject space to MNI space
+export FSLDIR=/opt/ext
+export SUBJECTS_DIR=/OUTPUTS
+mkdir -p /OUTPUTS/DATA/mri/transforms
+mkdir -p /OUTPUTS/DATA/scripts
+mni152reg --s DATA --1 --save-vol
+
+# Combine transforms to get from MNI to PET
+mri_concatenate_lta \
+-invert2 \
+transforms/reg.mni152.1mm.lta \
+pet2fs.lta \
+mni2pet.lta
+
+# Apply the MNI to PET transform to the Brodmann atlas and reslice to match
+# PET space using nearest neighbor interpolation to keep labels.
+mri_vol2vol \
+--targ PET_mcf_meanvol.nii.gz \
+--mov /opt/ext/brodmann.nii.gz \
+--lta mni2pet.lta \
+--interp nearest \
+--o brodmann2pet.nii.gz
+
 # Create binary masks of each ROI
 echo 'Creating masks...'
+
+# caudate
+# 11  Left-Caudate
+# 50  Right-Caudate
+mri_binarize --i aparc+aseg2pet.nii.gz --match 11 50 --o ROI_caudate.nii.gz
+
+# putamen
+# 12  Left-Putamen
+# 51  Right-Putamen
+mri_binarize --i aparc+aseg2pet.nii.gz --match 12 51 --o ROI_putamen.nii.gz
+
+# hippocampus
+# 17  Left-Hippocampus
+# 53  Right-Hippocampus
+mri_binarize --i aparc+aseg2pet.nii.gz --match 17 53 --o ROI_hippocampus.nii.gz
+
+# amygdala
+# 18  Left-Amygdala
+# 54  Right-Amygdala
+mri_binarize --i aparc+aseg2pet.nii.gz --match 18 54 --o ROI_amygdala.nii.gz
+
+# accubmens
+# 26  Left-Accumbens-area
+# 58  Right-Accumbens-area
+mri_binarize --i aparc+aseg2pet.nii.gz --match 26 58 --o ROI_accumbens.nii.gz
+
+# ventral dc
+# 28  Left-VentralDC
+# 60  Right-VentralDC
+mri_binarize --i aparc+aseg2pet.nii.gz --match 28 60 --o ROI_ventraldc.nii.gz
+
+# thalamus
+# 10  Left-Thalamus
+# 48  Right-Thalamus
+mri_binarize --i aparc+aseg2pet.nii.gz --match 10 49 --o ROI_thalamus.nii.gz
 
 # Frontal
 # 1003,2003 caudalmiddlefrontal
@@ -124,7 +188,7 @@ mri_binarize --i aparc+aseg2pet.nii.gz --match \
 7 8 46 47 \
 --o ROI_cblmtot.nii.gz
 
-# Create combined ROI image
+# Create combined ROI image for display purposes
 fslmaths.fsl ROI_antflobe -mul 1 temp
 fslmaths.fsl ROI_latplobe -mul 2 -add temp temp
 fslmaths.fsl ROI_lattlobe -mul 3 -add temp temp
@@ -133,14 +197,6 @@ fslmaths.fsl ROI_postcing -mul 5 -add temp temp
 fslmaths.fsl ROI_cblmgm   -mul 6 -add temp temp
 fslmaths.fsl ROI_cblmwm   -mul 7 -add temp temp
 mv temp.nii.gz ROI_SEG.nii.gz
-
-echo 'DONE'
-
-# Apply inverse tranform to WMPARC
-mri_convert -ait pet2fs.lta -rt nearest wmparc.mgz wmparc2pet.nii.gz
-
-# Create binary masks of each ROI
-echo 'Creating masks...'
 
 # WMPARC supra-ventricular white matter
 #3003,4003  wm-xh-caudalmiddlefrontal
@@ -162,12 +218,22 @@ mri_binarize --i ROI_supravwm.nii.gz --min 1 --erode 1 --o ROI_supravwm_eroded.n
 # Make eroded cerebral wm mask
 mri_binarize --i ROI_cortwm.nii.gz --min 1 --erode 1 --o ROI_cortwm_eroded.nii.gz
 
+# Make Brodmann ROIs masked by cortical gray
+for i in {1..47}
+do
+    mri_binarize --i brodmann2pet.nii.gz --match $i --mask ROI_cortgm.nii.gz --o ROI_BA${i}.nii.gz
+done
+
 # Output stats
 TXT=PETbyROI.csv
-ROI=(supravwm supravwm_eroded cortwm_eroded antflobe latplobe lattlobe antcing postcing compositegm cortwm cblmgm cblmwm)
 
 echo 'Calculating stats...'
+
+# Write header line
 echo "ROI,MIN,MAX,MEAN,STD,VOL" > $TXT
+
+# Write ROI rows
+ROI=(supravwm supravwm_eroded cortwm_eroded antflobe latplobe lattlobe antcing postcing compositegm cortwm cblmgm cblmwm)
 for r in "${ROI[@]}"
 do
     echo -n $r >> $TXT
@@ -175,4 +241,22 @@ do
     grep Seg0001 ${r}_stats.txt | awk '{print ","$8","$9","$6","$7","$4}' >> $TXT
 done
 
-echo 'DONE'
+# Subcortical ROIs
+ROI=(caudate amygdala hippocampus accumbens thalamus putamen ventraldc)
+for r in "${ROI[@]}"
+do
+    echo -n $r >> $TXT
+    mri_segstats --seg ROI_${r}.nii.gz --i PET_mcf_meanvol.nii.gz --id 1 --sum ${r}_stats.txt
+    grep Seg0001 ${r}_stats.txt | awk '{print ","$8","$9","$6","$7","$4}' >> $TXT
+done
+
+# Brodmann Areas
+for i in {1..11} {17..30} {32..32} {34..47}
+do
+    echo -n "ROI_BA${i}" >> $TXT
+    mri_segstats --seg ROI_BA${i}.nii.gz --i PET_mcf_meanvol.nii.gz --id 1 --sum BA${i}_stats.txt
+    grep Seg0001 BA${i}_stats.txt | awk '{print ","$8","$9","$6","$7","$4}' >> $TXT
+done
+
+
+echo 'DONE!'
