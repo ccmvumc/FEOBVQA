@@ -36,6 +36,7 @@ COPY ext/flirt.newdefault.20080811.sch /opt/sclimbic/bin/flirt.newdefault.200808
 RUN chmod +x /opt/src/*.sh
 RUN chmod +x /opt/ext/*
 ENV PATH=/opt/ext:/opt/src:$PATH
+RUN chmod g+r /opt/ext/*
 
 # Configure default script to run
 ENTRYPOINT ["/bin/bash", "/opt/src/run.sh"]
