@@ -1,0 +1,27 @@
+---
+containers:
+  - name: CONN
+    path: all_conn_rsfc_v1.0.0.sif
+requirements:
+  walltime: 0-12
+  memory: 16G
+inputs:
+  xnat:
+    subjects:
+        assessors:
+          - types: FEOBVQA_v4
+            resources:
+            - resource: SUBJ
+pre:
+  type: singularity_exec
+  container: CONN
+  args: /bin/bash /REPO/src/DSCHOL/pre.sh
+command:
+  type: singularity_exec
+  container: CONN
+  args: /bin/bash /REPO/src/DSCHOL/main.sh
+post:
+  type: singularity_exec
+  container: CONN
+  args: /bin/bash /REPO/src/DSCHOL/post.sh
+description: FEOBV voxel-based with SPM
