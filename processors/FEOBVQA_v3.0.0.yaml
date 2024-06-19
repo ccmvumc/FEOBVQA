@@ -1,0 +1,56 @@
+---
+procyamlversion: 3.0.0-dev.0
+containers:
+  - name: FS7
+    path: freesurfer_7.2.0.sif
+    source: docker://freesurfer/freesurfer:7.2.0
+  - name: FEOBV_v2
+    path: feobvqa_v2.sif
+requirements:
+  walltime: 0-4
+  memory: 16G
+inputs:
+  xnat:
+    sessions:
+      - select: first-mri
+        assessors:
+        - name: assr_fs7
+          types: FS7_v1
+          resources:
+            - resource: SUBJ
+              ftype: DIR
+      - tracer: FEOBV
+        scans:
+          - name: scan_pet
+            types: CTAC
+            nifti: PET.nii.gz
+outputs:
+  - dir: DATA
+pre:
+  type: singularity_exec
+  container: FEOBV_v2
+  args: >-
+    bash -c "mkdir -p /OUTPUTS/DATA &&
+    cp -r /INPUTS/SUBJ/SUBJ /OUTPUTS/ &&
+    cp -r /INPUTS/PET.nii.gz /OUTPUTS/DATA/ &&
+    cd /OUTPUTS/DATA &&
+    mcflirt -in PET -report -plots -stats -meanvol -mats -rmsrel -rmsabs"
+command:
+  type: singularity_run
+  container: FS7
+  extraopts: -B $HOME/freesurfer_license.txt:/usr/local/freesurfer/.license
+  args: >-
+    bash -c "export SUBJECTS_DIR=/OUTPUTS &&
+    cd /OUTPUTS/DATA &&
+    mri_coreg --s SUBJ --mov PET_mcf_meanvol.nii.gz --reg PET.reg.lta &&
+    gtmseg --s SUBJ &&
+    mri_gtmpvc
+    --i PET_mcf_meanvol.nii.gz
+    --reg PET.reg.lta
+    --psf 4
+    --seg /OUTPUTS/SUBJ/mri/gtmseg.mgz
+    --default-seg-merge
+    --auto-mask 1 .01
+    --mgx .01
+    --o gtmpvc.output"
+description: FEOBV regional SUVR using FreeSurfer 7.2.0 PETSurfer
