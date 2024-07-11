@@ -1,0 +1,58 @@
+---
+containers:
+  - name: CONN
+    path: all_conn_rsfc_v1.0.0.sif
+requirements:
+  walltime: 0-12
+  memory: 16G
+inputs:
+  xnat:
+    subjects:
+      sessions:
+        - types: Baseline
+          assessors:
+          - types: FEOBVQA_v2
+            resources:
+            - resource: DATA
+              fmatch: mri/PET_mcf_meanvol.nii.gz,mri/PETbyROI.csv,mri/mni152.orig.mgz,mri/mni2pet.lta
+pre:
+  type: singularity_exec
+  container: CONN
+  args: /bin/bash /REPO/src/DSCHOL/pre.sh
+# get the norm factor
+#NORMFACTOR=`grep supravwm_eroded PETbyROI.csv | awk -F',' '{print $4}'`
+#echo $NORMFACTOR
+#
+# apply factor to get suvr
+#fslmaths PET_mcf_meanvol.nii.gz -div $NORMFACTOR SUVR.nii.gz
+#
+# get suvr in mni
+#export FREESURFER_HOME=/Applications/freesurfer/7.4.0
+#source $FREESURFER_HOME/SetUpFreeSurfer.sh
+#mri_convert -ait mni2pet.lta SUVR.nii.gz SUVR2mni.nii.gz
+#
+# garjus getinputs 1 download-DSCHOL -p DSCHOL
+# for i in DS*;do mv $i/*/*/*/*/* $i;done
+# for i in D*;do echo $i && cd $i && ../run.sh && cd ..;done
+#
+# Make template from T1s, save transforms
+# mri_robust_template \
+# --mov D*/mni152.orig.gz \
+# --template DSCHOL7-mni152.orig.mgz \
+# --satit \
+# --lta \
+# DSCHOL202/to_template.lta \
+# DST3050001/to_template.lta \
+# DST3050003/to_template.lta \
+# DST3050033/to_template.lta \
+# DST3050041/to_template.lta \
+# DST3050042/to_template.lta \
+# DST3050045/to_template.lta
+
+# Apply transforms to SUVR
+# for i in D*;do mri_convert -at $i/to_template.lta $i/SUVR2mni.nii.gz $i/tSUVR2mni.nii.gz;done
+
+# Average the SUVR2mni
+# mri_average -noconform */SUVR2mni.nii.gz  DSCHOL7-mri_average-SUVR2mni.nii.gz 
+
+# Done!
