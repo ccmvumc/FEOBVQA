@@ -1,0 +1,22 @@
+---
+containers:
+  - name: CONN
+    path: all_conn_rsfc_v1.0.0.sif
+requirements:
+  walltime: 0-12
+  memory: 16G
+inputs:
+  xnat:
+    subjects:
+        assessors:
+          - types: FEOBVQA_v4
+            resources:
+            - resource: SUBJ
+          - types: PIBQA_v2
+            resources:
+            - resource: SUBJ
+pre:
+  type: singularity_exec
+  container: CONN
+  args: /bin/bash -c "mkdir /OUTPUTS/DATA && cp -r /INPUTS/$i /OUTPUTS/DATA"
+description: FEOBV vs Amyloid voxel-based with SPM
