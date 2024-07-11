@@ -18,7 +18,7 @@ inputs:
 command:
   type: singularity_exec
   container: CONN
-  args: /bin/bash /REPO/src/DSCHOL/pre.sh
+  args: /bin/bash -c "mkdir /OUTPUTS/DATA && cp -r /INPUTS/* /OUTPUTS/DATA"
 # get the norm factor
 #NORMFACTOR=`grep supravwm_eroded PETbyROI.csv | awk -F',' '{print $4}'`
 #echo $NORMFACTOR
