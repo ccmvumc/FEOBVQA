@@ -18,5 +18,5 @@ inputs:
 command:
   type: singularity_exec
   container: CONN
-  args: /bin/bash -c "mkdir /OUTPUTS/DATA && cp -r /INPUTS/$i /OUTPUTS/DATA"
+  args: /bin/bash -c "mkdir /OUTPUTS/DATA && cp -r /INPUTS/* /OUTPUTS/DATA"
 description: FEOBV vs Amyloid voxel-based with SPM
