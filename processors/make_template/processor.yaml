@@ -15,7 +15,7 @@ inputs:
             resources:
             - resource: DATA
               fmatch: mri/PET_mcf_meanvol.nii.gz,mri/PETbyROI.csv,mri/mni152.orig.mgz,mri/mni2pet.lta
-pre:
+command:
   type: singularity_exec
   container: CONN
   args: /bin/bash /REPO/src/DSCHOL/pre.sh

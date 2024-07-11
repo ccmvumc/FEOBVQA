@@ -15,7 +15,7 @@ inputs:
           - types: PIBQA_v2
             resources:
             - resource: SUBJ
-pre:
+command:
   type: singularity_exec
   container: CONN
   args: /bin/bash -c "mkdir /OUTPUTS/DATA && cp -r /INPUTS/$i /OUTPUTS/DATA"
