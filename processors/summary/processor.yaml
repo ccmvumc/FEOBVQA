@@ -19,13 +19,14 @@ command:
   extraopts: -B $HOME/freesurfer_license.txt:/opt/freesurfer/.license
   args: >-
     bash -c 'set -x;
+    mkdir /OUTPUTS/DATA && cp -r /INPUTS/* /OUTPUTS/DATA;
     cd /INPUTS;
     for i in *;do
     j=esupravwm;
-    mkdir -p /OUTPUTS/$i/$j;
-    cd /OUTPUTS/$i/$j;
-    cp /INPUTS/$i/*/SUBJ/gtmpvc.$j.output/*.txt .;
-    cp /INPUTS/$i/*/SUBJ/gtmpvc.$j.output/*.dat .;
+    mkdir -p /OUTPUTS/DATA/$i/$j;
+    cd /OUTPUTS/DATA/$i/$j;
+    cp /INPUTS/$i/*/*/SUBJ/gtmpvc.$j.output/*.txt .;
+    cp /INPUTS/$i/*/*/SUBJ/gtmpvc.$j.output/*.dat .;
     yes $i | head -n 100 > subject.txt;
     yes $j | head -n 100 > ref.txt;
     yes gtm | head -n 100 > gtm.txt;
