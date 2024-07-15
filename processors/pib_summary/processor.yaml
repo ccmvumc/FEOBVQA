@@ -1,0 +1,21 @@
+---
+containers:
+  - name: POST
+    path: fs7_post_v1.sif
+requirements:
+  walltime: 0-2
+  memory: 8G
+inputs:
+  xnat:
+    subjects:
+      assessors:
+      - types: PIBQA_v2
+        resources:
+        - resource: SUBJ
+          fmatch: gtmpvc.cblmgmwm.output/gtm.stats.dat
+command:
+  type: singularity_exec
+  container: POST
+  extraopts: -B $HOME/freesurfer_license.txt:/opt/freesurfer/.license
+  args: /bin/bash /REPO/src/pib_summary/main.sh
+description: Project-level summary of PETSurfer results
