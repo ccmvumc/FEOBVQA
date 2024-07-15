@@ -26,4 +26,4 @@ for i in *;do
 
 done
 
-cat /OUTPUTS/DATA/*/esupravwm/all.suvr > /OUTPUTS/suvr.txt
+cat /OUTPUTS/DATA/*/all.suvr > /OUTPUTS/suvr.txt
