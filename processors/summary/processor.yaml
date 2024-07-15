@@ -17,22 +17,5 @@ command:
   type: singularity_exec
   container: POST
   extraopts: -B $HOME/freesurfer_license.txt:/opt/freesurfer/.license
-  args: >-
-    bash -c 'set -x;
-    mkdir /OUTPUTS/DATA && cp -r /INPUTS/* /OUTPUTS/DATA;
-    cd /INPUTS;
-    for i in *;do
-    j=esupravwm;
-    mkdir -p /OUTPUTS/DATA/$i/$j;
-    cd /OUTPUTS/DATA/$i/$j;
-    cp /INPUTS/$i/gtmpvc.$j.output/*.txt .;
-    cp /INPUTS/$i/gtmpvc.$j.output/*.dat .;
-    yes $i | head -n 100 > subject.txt;
-    yes $j | head -n 100 > ref.txt;
-    yes gtm | head -n 100 > gtm.txt;
-    awk '\''{print $3}'\'' gtm.stats.dat > labels.txt;
-    awk '\''{print $7}'\'' gtm.stats.dat > gtm.suvr;
-    paste subject.txt ref.txt gtm.txt labels.txt gtm.suvr >> all.suvr;
-    done;
-    cat /OUTPUTS/*/*/all.suvr > /OUTPUTS/suvr.txt;'
+  args: /bin/bash /REPO/src/summary/main.sh
 description: Project-level summary of FEOBV PETSurfer results using GTM PVC with eroded-supraventricular-white-matter as reference region.
