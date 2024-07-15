@@ -1,0 +1,37 @@
+---
+containers:
+  - name: POST
+    path: fs7_post_v1.sif
+requirements:
+  walltime: 0-2
+  memory: 8G
+inputs:
+  xnat:
+    subjects:
+      assessors:
+      - types: FEOBVQA_v4
+        resources:
+        - resource: SUBJ
+          fmatch: gtmpvc.esupravwm.output/gtm.stats.dat
+command:
+  type: singularity_exec
+  container: POST
+  extraopts: -B $HOME/freesurfer_license.txt:/opt/freesurfer/.license
+  args: >-
+    bash -c 'set -x;
+    cd /INPUTS;
+    for i in *;do
+    j=esupravwm;
+    mkdir -p /OUTPUTS/$i/$j;
+    cd /OUTPUTS/$i/$j;
+    cp /INPUTS/$i/*/SUBJ/gtmpvc.$j.output/*.txt .;
+    cp /INPUTS/$i/*/SUBJ/gtmpvc.$j.output/*.dat .;
+    yes $i | head -n 100 > subject.txt;
+    yes $j | head -n 100 > ref.txt;
+    yes gtm | head -n 100 > gtm.txt;
+    awk '\''{print $3}'\'' gtm.stats.dat > labels.txt;
+    awk '\''{print $7}'\'' gtm.stats.dat > gtm.suvr;
+    paste subject.txt ref.txt gtm.txt labels.txt gtm.suvr >> all.suvr;
+    done;
+    cat /OUTPUTS/*/*/all.suvr > /OUTPUTS/suvr.txt;'
+description: Project-level summary of FEOBV PETSurfer results using GTM PVC with eroded-supraventricular-white-matter as reference region.
