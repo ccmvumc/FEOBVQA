@@ -9,11 +9,11 @@ inputs:
   xnat:
     subjects:
       sessions:
-          assessors:
-          - types: FEOBVQA_v2
-            resources:
-            - resource: DATA
-              fmatch: mri/PET_mcf_meanvol.nii.gz,mri/PETbyROI.csv,mri/mni152.orig.mgz,mri/mni2pet.lta
+        - assessors:
+            - types: FEOBVQA_v2
+              resources:
+              - resource: DATA
+                fmatch: mri/PET_mcf_meanvol.nii.gz,mri/PETbyROI.csv,mri/mni152.orig.mgz,mri/mni2pet.lta
 command:
   type: singularity_exec
   container: CONN
