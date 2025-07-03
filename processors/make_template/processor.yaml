@@ -1,9 +1,10 @@
 ---
 containers:
-  - name: CONN
-    path: all_conn_rsfc_v1.0.0.sif
+  - name: BASH
+    source: docker://bash
+    path: bash_latest.sif
 requirements:
-  walltime: 0-12
+  walltime: 0-8
   memory: 16G
 inputs:
   xnat:
@@ -16,5 +17,5 @@ inputs:
                 fmatch: mri/PET_mcf_meanvol.nii.gz,mri/PETbyROI.csv,mri/mni152.orig.mgz,mri/mni2pet.lta
 command:
   type: singularity_exec
-  container: CONN
-  args: /bin/bash -c "mkdir /OUTPUTS/DATA && cp -r /INPUTS/* /OUTPUTS/DATA"
+  container: BASH
+  args: bash -c "mkdir /OUTPUTS/DATA && cp -r /INPUTS/* /OUTPUTS/DATA"
